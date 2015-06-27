@@ -1,9 +1,11 @@
 (ns ring-hap.core
   (:require [clojure.java.io :as io]
+            [clojure.stacktrace :refer [print-cause-trace]]
             [clojure.string :as str]
             [ring.util.codec :as codec]
             [ring.util.request :as req]
-            [cognitect.transit :as transit]))
+            [cognitect.transit :as transit])
+  (:import (java.io ByteArrayOutputStream)))
 
 (defn transit-format [media-type]
   (when (string? media-type)
@@ -72,21 +74,62 @@
       (assoc-params-from-query-params request encoding))
     (assoc-params-from-body request)))
 
-(defn wrap-hap
-  "Middleware to handle all aspects of the Transit Web Protocol.
+(defn- write-transit [o]
+  (let [out (ByteArrayOutputStream.)]
+    (transit/write (transit/writer out :json) o)
+    (io/input-stream (.toByteArray out))))
 
-  Accepts the following options:
+(defn hap-response [resp]
+  (-> (update resp :body write-transit)
+      (assoc-in [:headers "Content-Type"] "application/transit+json")))
 
-  :encoding - encoding to use for url-decoding. If not specified, uses
-              the request character encoding, or \"UTF-8\" if no request
-              character encoding is set."
-  {:arglists '([handler] [handler options])}
-  [handler & [options]]
-  (fn [request]
+(defn wrap-transit [handler opts]
+  (fn [req]
     (try
-      (handler (hap-request request options))
+      (let [resp (handler (hap-request req opts))]
+        (hap-response resp))
       (catch Exception e
         (if (= :parse-error (:type (ex-data e)))
           {:status 400
            :body "Bad Request"}
           (throw e))))))
+
+(defn error-body [msg {:keys [up-href]}]
+  (let [body {:error msg}]
+    (if up-href
+      (assoc-in body [:links :up :href] up-href)
+      body)))
+
+(defn wrap-not-found [handler opts]
+  (fn [req]
+    (if-let [resp (handler req)]
+      resp
+      {:status 404
+       :body (error-body "Not Found." opts)})))
+
+(defn wrap-exception [handler opts]
+  (fn [request]
+    (try
+      (handler request)
+      (catch Throwable t
+        (print-cause-trace t)
+        {:status 500
+         :body (error-body (.getMessage t) opts)}))))
+
+(defn wrap-hap
+  "Middleware to handle all aspects of the Hypermedia Application Protocol.
+
+  Accepts the following opts:
+
+  :encoding - encoding to use for url-decoding. If not specified, uses
+              the request character encoding, or \"UTF-8\" if no request
+              character encoding is set.
+
+  :up-href - an href for :up links in error messages. Up link will be skipped
+             if not set."
+  {:arglists '([handler] [handler opts])}
+  [handler & [opts]]
+  (-> handler
+      (wrap-not-found opts)
+      (wrap-exception opts)
+      (wrap-transit opts)))
