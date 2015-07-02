@@ -4,8 +4,17 @@
             [clojure.string :as str]
             [ring.util.codec :as codec]
             [ring.util.request :as req]
-            [cognitect.transit :as transit])
-  (:import (java.io ByteArrayOutputStream)))
+            [cognitect.transit :as transit]
+            [outpace.schema-transit :as st])
+  (:import [java.io ByteArrayOutputStream]
+           [java.net URI]))
+
+(def ^:private read-opts
+  {:handlers
+   (assoc st/read-handlers "r" (transit/read-handler #(URI/create %)))})
+
+(def ^:private write-opts
+  {:handlers st/write-handlers})
 
 (defn transit-format [media-type]
   (when (string? media-type)
@@ -17,13 +26,16 @@
 (defn parse-body [request]
   (if-let [body (:body request)]
     (if-let [format (-> (req/content-type request) (transit-format))]
-      (->> (transit/reader body format)
+      (->> (transit/reader body format read-opts)
            (transit/read)))))
 
 (defn assoc-params-from-body [request]
   (if-let [parsed-body (parse-body request)]
     (assoc request :params parsed-body)
     request))
+
+(defn do-parse-body [request]
+  (assoc request :body (parse-body request)))
 
 (defn parse-params [params encoding]
   (let [params (codec/form-decode params encoding)]
@@ -32,7 +44,7 @@
 (defn transit-read-str [s]
   (-> (.getBytes s "utf-8")
       (io/input-stream)
-      (transit/reader :json)
+      (transit/reader :json read-opts)
       (transit/read)))
 
 (defn transit-read-str-ex [s]
@@ -67,16 +79,22 @@
   map. See: wrap-hap."
   {:arglists '([request] [request options])}
   [request & [opts]]
-  (if (= :get (:request-method request))
+  (condp = (:request-method request)
+
+    :get
     (let [encoding (or (:encoding opts)
                        (req/character-encoding request)
                        "UTF-8")]
       (assoc-params-from-query-params request encoding))
-    (assoc-params-from-body request)))
+
+    :post (assoc-params-from-body request)
+    :put (do-parse-body request)
+
+    request))
 
 (defn- write-transit [o]
   (let [out (ByteArrayOutputStream.)]
-    (transit/write (transit/writer out :json) o)
+    (transit/write (transit/writer out :json write-opts) o)
     (io/input-stream (.toByteArray out))))
 
 (defn hap-response [resp]

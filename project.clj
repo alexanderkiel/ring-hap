@@ -5,7 +5,7 @@
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
             
-  :dependencies [[org.clojure/clojure "1.7.0-RC2"]
+  :dependencies [[org.clojure/clojure "1.7.0"]
                  [ring/ring-core "1.3.2" :exclusions [clj-time
                                                       commons-codec
                                                       commons-fileupload
@@ -13,4 +13,6 @@
                                                       crypto-equality
                                                       crypto-random
                                                       org.clojure/tools.reader]]
-                 [com.cognitect/transit-clj "0.8.275"]])
+                 [com.cognitect/transit-clj "0.8.275"]
+                 [com.outpace/schema-transit "0.2.3"
+                  :exclusions [com.cognitect/transit-cljs]]])
