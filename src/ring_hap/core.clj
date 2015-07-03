@@ -16,12 +16,27 @@
 (def ^:private write-opts
   {:handlers st/write-handlers})
 
-(defn transit-format [media-type]
-  (when (string? media-type)
-    (let [[type subtype] (str/split media-type #"/")]
-      (when (= "application" type)
-        ({"transit+json" :json
-          "transit+msgpack" :msgpack} subtype)))))
+(defn transit-format
+  "Determines the format of a media type.
+
+  Extra is the part after the semicolon.
+
+  application/transit+json         -> :json
+  application/transit+json;verbose -> :json-verbose
+  application/transit+msgpack      -> :msgpack"
+  ([media-type] (transit-format media-type nil))
+  ([media-type extra]
+   (when (string? media-type)
+     (let [[type subtype] (str/split media-type #"/")]
+       (when (= "application" type)
+         (case subtype
+           "transit+json"
+           (if (and (string? extra) (.contains extra "verbose"))
+             :json-verbose
+             :json)
+           "transit+msgpack"
+           :msgpack
+           nil))))))
 
 (defn parse-body [request]
   (if-let [body (:body request)]
@@ -107,18 +122,30 @@
         {:status 400
          :body (error-body (str "Bad Request: " (.getMessage e)) opts)}))))
 
-(defn- write-transit [o]
+(defn- write-transit [format o]
   (let [out (ByteArrayOutputStream.)]
-    (transit/write (transit/writer out :json write-opts) o)
+    (transit/write (transit/writer out format write-opts) o)
     (io/input-stream (.toByteArray out))))
 
-(defn hap-response [resp]
-  (-> (update resp :body write-transit)
-      (assoc-in [:headers "Content-Type"] "application/transit+json")))
+(defn content-type [format]
+  (case format
+    (:json :json-verbose)
+    "application/transit+json"
+    :msgpack
+    "application/transit+msgpack"))
+
+(defn hap-response [format resp]
+  (-> (update resp :body #(write-transit format %))
+      (assoc-in [:headers "Content-Type"] (content-type format))))
+
+(defn accept [request]
+  (if-let [type (get-in request [:headers "accept"])]
+    (rest (re-find #"^(.*?)(?:;|$)(.+)?$" type))))
 
 (defn wrap-transit-response [handler]
   (fn [req]
-    (hap-response (handler req))))
+    (-> (apply transit-format (accept req))
+        (hap-response (handler req)))))
 
 (defn wrap-not-found [handler opts]
   (fn [req]
