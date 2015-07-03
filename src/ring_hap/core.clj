@@ -144,8 +144,9 @@
 
 (defn wrap-transit-response [handler]
   (fn [req]
-    (-> (apply transit-format (accept req))
-        (hap-response (handler req)))))
+    (if-let [format (apply transit-format (accept req))]
+      (hap-response format (handler req))
+      {:status 406})))
 
 (defn wrap-not-found [handler opts]
   (fn [req]
