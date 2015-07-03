@@ -1,6 +1,7 @@
 (ns ring-hap.core-test
   (:require [clojure.test :refer :all]
-            [ring-hap.core :refer :all]))
+            [ring-hap.core :refer :all]
+            [cognitect.transit :as transit]))
 
 (deftest transit-format-test
   (are [media-type format] (= format (transit-format media-type))
@@ -29,3 +30,11 @@
            (try
              (decode-params {"a" "b"})
              (catch Exception e (:type (ex-data e))))))))
+
+(deftest wrap-transit-test
+  (testing "Returns 400 (Bad Request) on invalid query param value"
+    (let [req {:request-method :get
+               :query-string "foo=bar"}
+          resp ((wrap-transit-request identity {}) req)]
+      (is (= 400 (:status resp)))
+      (is (= "Bad Request: Parse error on: bar" (:error (:body resp)))))))

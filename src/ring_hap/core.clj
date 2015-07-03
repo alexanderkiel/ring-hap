@@ -92,6 +92,21 @@
 
     request))
 
+(defn error-body [msg {:keys [up-href]}]
+  (let [body {:error msg}]
+    (if up-href
+      (assoc-in body [:links :up :href] up-href)
+      body)))
+
+(defn wrap-transit-request [handler opts]
+  (fn [req]
+    (try
+      (handler (hap-request req opts))
+      (catch Exception e
+        ;; Handler doesn't throw because it's wrapped in wrap-exception
+        {:status 400
+         :body (error-body (str "Bad Request: " (.getMessage e)) opts)}))))
+
 (defn- write-transit [o]
   (let [out (ByteArrayOutputStream.)]
     (transit/write (transit/writer out :json write-opts) o)
@@ -101,22 +116,9 @@
   (-> (update resp :body write-transit)
       (assoc-in [:headers "Content-Type"] "application/transit+json")))
 
-(defn wrap-transit [handler opts]
+(defn wrap-transit-response [handler]
   (fn [req]
-    (try
-      (let [resp (handler (hap-request req opts))]
-        (hap-response resp))
-      (catch Exception e
-        (if (= :parse-error (:type (ex-data e)))
-          {:status 400
-           :body "Bad Request"}
-          (throw e))))))
-
-(defn error-body [msg {:keys [up-href]}]
-  (let [body {:error msg}]
-    (if up-href
-      (assoc-in body [:links :up :href] up-href)
-      body)))
+    (hap-response (handler req))))
 
 (defn wrap-not-found [handler opts]
   (fn [req]
@@ -150,4 +152,5 @@
   (-> handler
       (wrap-not-found opts)
       (wrap-exception opts)
-      (wrap-transit opts)))
+      (wrap-transit-request opts)
+      (wrap-transit-response)))
