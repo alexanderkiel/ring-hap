@@ -15,7 +15,8 @@
                                                       org.clojure/tools.reader]]
                  [com.cognitect/transit-clj "0.8.275"
                   :exclusions
-                  [com.fasterxml.jackson.datatype/jackson-datatype-json-org]]
+                  [com.fasterxml.jackson.datatype/jackson-datatype-json-org
+                   com.googlecode.json-simple/json-simple]]
                  [com.fasterxml.jackson.core/jackson-core "2.3.2"]
                  [com.outpace/schema-transit "0.2.3"
                   :exclusions [com.cognitect/transit-cljs]]])
