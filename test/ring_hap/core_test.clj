@@ -1,7 +1,6 @@
 (ns ring-hap.core-test
   (:require [clojure.test :refer :all]
-            [ring-hap.core :refer :all]
-            [cognitect.transit :as transit]))
+            [ring-hap.core :refer :all]))
 
 (deftest transit-format-test
   (testing "media type without extra"

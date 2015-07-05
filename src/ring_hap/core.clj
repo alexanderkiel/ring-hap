@@ -5,16 +5,16 @@
             [ring.util.codec :as codec]
             [ring.util.request :as req]
             [cognitect.transit :as transit]
-            [outpace.schema-transit :as st])
+            [transit-schema.core :as ts])
   (:import [java.io ByteArrayOutputStream]
            [java.net URI]))
 
 (def ^:private read-opts
   {:handlers
-   (assoc st/read-handlers "r" (transit/read-handler #(URI/create %)))})
+   (assoc ts/read-handlers "r" (transit/read-handler #(URI/create %)))})
 
 (def ^:private write-opts
-  {:handlers st/write-handlers})
+  {:handlers ts/write-handlers})
 
 (defn transit-format
   "Determines the format of a media type.

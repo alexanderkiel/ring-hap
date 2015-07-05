@@ -18,5 +18,5 @@
                   [com.fasterxml.jackson.datatype/jackson-datatype-json-org
                    com.googlecode.json-simple/json-simple]]
                  [com.fasterxml.jackson.core/jackson-core "2.3.2"]
-                 [com.outpace/schema-transit "0.2.3"
-                  :exclusions [com.cognitect/transit-cljs]]])
+                 [org.clojars.akiel/transit-schema "0.1-SNAPSHOT"
+                  :exclusions [org.clojure/clojurescript]]])
