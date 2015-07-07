@@ -108,7 +108,7 @@
     request))
 
 (defn error-body [msg {:keys [up-href]}]
-  (let [body {:error msg}]
+  (let [body {:data {:message msg}}]
     (if up-href
       (assoc-in body [:links :up :href] up-href)
       body)))

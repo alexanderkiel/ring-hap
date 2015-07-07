@@ -38,13 +38,16 @@
              (decode-params {"a" "b"})
              (catch Exception e (:type (ex-data e))))))))
 
+(defn- error-msg [resp]
+  (-> resp :body :data :message))
+
 (deftest wrap-transit-test
   (testing "Returns 400 (Bad Request) on invalid query param value"
     (let [req {:request-method :get
                :query-string "foo=bar"}
           resp ((wrap-transit-request identity {}) req)]
       (is (= 400 (:status resp)))
-      (is (= "Bad Request: Parse error on: bar" (:error (:body resp)))))))
+      (is (= "Bad Request: Parse error on: bar" (error-msg resp))))))
 
 (deftest content-type-test
   (are [format type] (= type (content-type format))
