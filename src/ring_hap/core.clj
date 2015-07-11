@@ -161,6 +161,7 @@
       (handler request)
       (catch Throwable t
         (print-cause-trace t)
+        (flush)
         {:status 500
          :body (error-body (.getMessage t) opts)}))))
 
