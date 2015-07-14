@@ -135,7 +135,7 @@
     "application/transit+msgpack"))
 
 (defn hap-response [format resp]
-  (-> (update resp :body #(write-transit format %))
+  (-> (update resp :body #(when % (write-transit format %)))
       (assoc-in [:headers "Content-Type"] (content-type format))))
 
 (defn accept [request]
