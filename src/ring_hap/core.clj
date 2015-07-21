@@ -9,6 +9,8 @@
   (:import [java.io ByteArrayOutputStream]
            [java.net URI]))
 
+(set! *warn-on-reflection* true)
+
 (def ^:private read-opts
   {:handlers
    (assoc ts/read-handlers "r" (transit/read-handler #(URI/create %)))})
@@ -31,7 +33,7 @@
        (when (= "application" type)
          (case subtype
            "transit+json"
-           (if (and (string? extra) (.contains extra "verbose"))
+           (if (and (string? extra) (.contains ^String extra "verbose"))
              :json-verbose
              :json)
            "transit+msgpack"
@@ -56,7 +58,7 @@
   (let [params (codec/form-decode params encoding)]
     (if (map? params) params {})))
 
-(defn transit-read-str [s]
+(defn transit-read-str [^String s]
   (-> (.getBytes s "utf-8")
       (io/input-stream)
       (transit/reader :json read-opts)
