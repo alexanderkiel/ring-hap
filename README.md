@@ -11,7 +11,7 @@ Ring middleware for the [Hypermedia Application Protocol][1].
 To install, just add the following to your project dependencies:
 
 ```clojure
-[org.clojars.akiel/ring-hap "0.1-SNAPSHOT"]
+[org.clojars.akiel/ring-hap "0.1"]
 ```
 
 ## Usage
