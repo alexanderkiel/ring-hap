@@ -41,13 +41,29 @@
 (defn- error-msg [resp]
   (-> resp :body :data :message))
 
-(deftest wrap-transit-test
+(deftest wrap-transit-request-test
   (testing "Returns 400 (Bad Request) on invalid query param value"
     (let [req {:request-method :get
                :query-string "foo=bar"}
           resp ((wrap-transit-request identity {}) req)]
       (is (= 400 (:status resp)))
       (is (= "Bad Request: Parse error on: bar" (error-msg resp))))))
+
+(deftest wrap-transit-response-test
+  (testing "Returns 406 on missing Accept header."
+    (is (= 406 (:status ((wrap-transit-response nil) {})))))
+
+  (testing "Returns 406 on text/plain."
+    (let [req {:headers {"accept" "text/plain"}}]
+      (is (= 406 (:status ((wrap-transit-response nil) req))))))
+
+  (testing "Returns a response on application/json."
+    (let [req {:headers {"accept" "application/json"}}]
+      (is (= 200 (:status ((wrap-transit-response #(assoc % :status 200)) req))))))
+
+  (testing "Returns a response on application/*."
+    (let [req {:headers {"accept" "application/*"}}]
+      (is (= 200 (:status ((wrap-transit-response #(assoc % :status 200)) req)))))))
 
 (deftest content-type-test
   (are [format type] (= type (content-type format))

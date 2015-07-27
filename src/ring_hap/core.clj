@@ -32,7 +32,7 @@
      (let [[type subtype] (str/split media-type #"/")]
        (when (= "application" type)
          (case subtype
-           "transit+json"
+           ("transit+json" "json" "*")
            (if (and (string? extra) (.contains ^String extra "verbose"))
              :json-verbose
              :json)
@@ -146,7 +146,7 @@
 
 (defn wrap-transit-response [handler]
   (fn [req]
-    (if-let [format (apply transit-format (accept req))]
+    (if-let [format (some->> (accept req) (apply transit-format))]
       (hap-response format (handler req))
       {:status 406})))
 
