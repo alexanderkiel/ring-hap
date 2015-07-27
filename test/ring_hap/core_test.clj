@@ -8,8 +8,9 @@
       nil nil
       1 nil
       "text/plain" nil
+      "application/*" :json
       "application/xml" nil
-      "application/json" nil
+      "application/json" :json
       "application/transit+json" :json
       "application/transit+msgpack" :msgpack))
   (testing "media type with extra"
