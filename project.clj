@@ -1,4 +1,4 @@
-(defproject org.clojars.akiel/ring-hap "0.2-SNAPSHOT"
+(defproject org.clojars.akiel/ring-hap "0.2"
   :description "Ring Middleware for Hypermedia Application Protocol."
   :url "https://github.com/alexanderkiel/ring-hap"
 
