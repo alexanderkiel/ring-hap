@@ -13,10 +13,12 @@
 
 (def ^:private read-opts
   {:handlers
-   (assoc ts/read-handlers "r" (transit/read-handler #(URI/create %)))})
+   (-> ts/read-handlers
+       (assoc "r" (transit/read-handler #(URI/create %)))
+       (transit/read-handler-map))})
 
 (def ^:private write-opts
-  {:handlers ts/write-handlers})
+  {:handlers (transit/write-handler-map ts/write-handlers)})
 
 (defn transit-format
   "Determines the format of a media type.
