@@ -13,7 +13,7 @@
                                                       crypto-equality
                                                       crypto-random
                                                       org.clojure/tools.reader]]
-                 [com.cognitect/transit-clj "0.8.275"
+                 [com.cognitect/transit-clj "0.8.281"
                   :exclusions
                   [com.fasterxml.jackson.datatype/jackson-datatype-json-org
                    com.googlecode.json-simple/json-simple]]
