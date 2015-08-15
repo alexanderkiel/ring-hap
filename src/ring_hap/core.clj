@@ -50,7 +50,7 @@
 
 (defn assoc-params-from-body [request]
   (if-let [parsed-body (parse-body request)]
-    (assoc request :params parsed-body)
+    (update request :params #(merge % parsed-body))
     request))
 
 (defn do-parse-body [request]
@@ -98,18 +98,16 @@
   map. See: wrap-hap."
   {:arglists '([request] [request options])}
   [request & [opts]]
-  (condp = (:request-method request)
+  (let [encoding (or (:encoding opts)
+                     (req/character-encoding request)
+                     "UTF-8")
+        request (assoc-params-from-query-params request encoding)]
+    (condp = (:request-method request)
 
-    :get
-    (let [encoding (or (:encoding opts)
-                       (req/character-encoding request)
-                       "UTF-8")]
-      (assoc-params-from-query-params request encoding))
+      :post (assoc-params-from-body request)
+      :put (do-parse-body request)
 
-    :post (assoc-params-from-body request)
-    :put (do-parse-body request)
-
-    request))
+      request)))
 
 (defn error-body [msg {:keys [up-href]}]
   (let [body {:data {:message msg}}]
