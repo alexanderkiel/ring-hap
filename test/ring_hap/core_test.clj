@@ -52,19 +52,19 @@
 
 (deftest wrap-transit-response-test
   (testing "Returns 406 on missing Accept header."
-    (is (= 406 (:status ((wrap-transit-response nil) {})))))
+    (is (= 406 (:status ((wrap-transit-response nil nil) {})))))
 
   (testing "Returns 406 on text/plain."
     (let [req {:headers {"accept" "text/plain"}}]
-      (is (= 406 (:status ((wrap-transit-response nil) req))))))
+      (is (= 406 (:status ((wrap-transit-response nil nil) req))))))
 
   (testing "Returns a response on application/json."
     (let [req {:headers {"accept" "application/json"}}]
-      (is (= 200 (:status ((wrap-transit-response #(assoc % :status 200)) req))))))
+      (is (= 200 (:status ((wrap-transit-response #(assoc % :status 200) nil) req))))))
 
   (testing "Returns a response on application/*."
     (let [req {:headers {"accept" "application/*"}}]
-      (is (= 200 (:status ((wrap-transit-response #(assoc % :status 200)) req)))))))
+      (is (= 200 (:status ((wrap-transit-response #(assoc % :status 200) nil) req)))))))
 
 (deftest content-type-test
   (are [format type] (= type (content-type format))

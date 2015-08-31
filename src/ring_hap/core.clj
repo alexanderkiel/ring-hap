@@ -17,9 +17,6 @@
        (assoc "r" (transit/read-handler #(URI/create %)))
        (transit/read-handler-map))})
 
-(def ^:private write-opts
-  {:handlers (transit/write-handler-map ts/write-handlers)})
-
 (defn transit-format
   "Determines the format of a media type.
 
@@ -124,7 +121,7 @@
         {:status 400
          :body (error-body (str "Bad Request: " (.getMessage e)) opts)}))))
 
-(defn- write-transit [format o]
+(defn- write-transit [format write-opts o]
   (let [out (ByteArrayOutputStream.)]
     (transit/write (transit/writer out format write-opts) o)
     (io/input-stream (.toByteArray out))))
@@ -136,19 +133,22 @@
     :msgpack
     "application/transit+msgpack"))
 
-(defn hap-response [format resp]
-  (-> (update resp :body #(when % (write-transit format %)))
+(defn hap-response [format write-opts resp]
+  (-> (update resp :body #(when % (write-transit format write-opts %)))
       (assoc-in [:headers "Content-Type"] (content-type format))))
 
 (defn accept [request]
   (if-let [type (get-in request [:headers "accept"])]
     (rest (re-find #"^(.*?)(?:;|$)(.+)?$" type))))
 
-(defn wrap-transit-response [handler]
-  (fn [req]
-    (if-let [format (some->> (accept req) (apply transit-format))]
-      (hap-response format (handler req))
-      {:status 406})))
+(defn wrap-transit-response [handler opts]
+  (let [write-opts
+        {:handlers (-> (merge ts/write-handlers (:write-handlers opts))
+                       (transit/write-handler-map))}]
+    (fn [req]
+      (if-let [format (some->> (accept req) (apply transit-format))]
+        (hap-response format write-opts (handler req))
+        {:status 406}))))
 
 (defn wrap-not-found [handler opts]
   (fn [req]
@@ -174,14 +174,16 @@
 
   :encoding - encoding to use for url-decoding. If not specified, uses
               the request character encoding, or \"UTF-8\" if no request
-              character encoding is set.
+              character encoding is set
 
   :up-href - an href for :up links in error messages. Up link will be skipped
-             if not set."
+             if not set
+
+  :write-handlers - a map of additional Transit write handlers"
   {:arglists '([handler] [handler opts])}
   [handler & [opts]]
   (-> handler
       (wrap-not-found opts)
       (wrap-exception opts)
       (wrap-transit-request opts)
-      (wrap-transit-response)))
+      (wrap-transit-response opts)))
