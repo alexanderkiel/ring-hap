@@ -29,14 +29,14 @@
 
 (deftest decode-params-test
   (testing "Positive Cases"
-    (are [params parsed] (= parsed (decode-params params))
+    (are [params parsed] (= parsed (decode-params params {}))
       {"a" "\"b\""} {:a "b"}
       {"a" "\"~:b\""} {:a :b}
       {"a" "[\"^ \", \"b\", \"c\"]"} {:a {"b" "c"}}))
   (testing "Parse Failures"
     (is (= :parse-error
            (try
-             (decode-params {"a" "b"})
+             (decode-params {"a" "b"} {})
              (catch Exception e (:type (ex-data e))))))))
 
 (defn- error-msg [resp]

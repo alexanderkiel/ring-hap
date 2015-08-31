@@ -11,11 +11,9 @@
 
 (set! *warn-on-reflection* true)
 
-(def ^:private read-opts
-  {:handlers
-   (-> ts/read-handlers
-       (assoc "r" (transit/read-handler #(URI/create %)))
-       (transit/read-handler-map))})
+(def ^:private default-read-handlers
+  (-> ts/read-handlers
+      (assoc "r" (transit/read-handler #(URI/create %)))))
 
 (defn transit-format
   "Determines the format of a media type.
@@ -39,33 +37,33 @@
            :msgpack
            nil))))))
 
-(defn parse-body [request]
+(defn parse-body [read-opts request]
   (if-let [body (:body request)]
     (if-let [format (-> (req/content-type request) (transit-format))]
       (->> (transit/reader body format read-opts)
            (transit/read)))))
 
-(defn assoc-params-from-body [request]
-  (if-let [parsed-body (parse-body request)]
+(defn assoc-params-from-body [read-opts request]
+  (if-let [parsed-body (parse-body read-opts request)]
     (update request :params #(merge % parsed-body))
     request))
 
-(defn do-parse-body [request]
-  (assoc request :body (parse-body request)))
+(defn do-parse-body [read-opts request]
+  (assoc request :body (parse-body read-opts request)))
 
 (defn parse-params [params encoding]
   (let [params (codec/form-decode params encoding)]
     (if (map? params) params {})))
 
-(defn transit-read-str [^String s]
+(defn transit-read-str [read-opts ^String s]
   (-> (.getBytes s "utf-8")
       (io/input-stream)
       (transit/reader :json read-opts)
       (transit/read)))
 
-(defn transit-read-str-ex [s]
+(defn transit-read-str-ex [read-opts s]
   (try
-    (transit-read-str s)
+    (transit-read-str read-opts s)
     (catch Exception e
       (throw (ex-info (str "Parse error on: " s)
                       {:type :parse-error :input s} e)))))
@@ -73,20 +71,20 @@
 (defn decode-params
   "Decodes already parsed params by transforming keys to keywords and reading
   values as Transit."
-  [params]
+  [params read-opts]
   (reduce-kv
     (fn [r k v]
-      (assoc r (keyword k) (transit-read-str-ex v)))
+      (assoc r (keyword k) (transit-read-str-ex read-opts v)))
     {}
     params))
 
-(defn query-params [request encoding]
+(defn query-params [request read-opts encoding]
   (some-> (:query-string request)
           (parse-params encoding)
-          (decode-params)))
+          (decode-params read-opts)))
 
-(defn assoc-params-from-query-params [request encoding]
-  (if-let [params (query-params request encoding)]
+(defn assoc-params-from-query-params [request read-opts encoding]
+  (if-let [params (query-params request read-opts encoding)]
     (assoc request :params params)
     request))
 
@@ -95,14 +93,15 @@
   map. See: wrap-hap."
   {:arglists '([request] [request options])}
   [request & [opts]]
-  (let [encoding (or (:encoding opts)
+  (let [read-opts {:handlers (:read-handlers opts)}
+        encoding (or (:encoding opts)
                      (req/character-encoding request)
                      "UTF-8")
-        request (assoc-params-from-query-params request encoding)]
+        request (assoc-params-from-query-params request read-opts encoding)]
     (condp = (:request-method request)
 
-      :post (assoc-params-from-body request)
-      :put (do-parse-body request)
+      :post (assoc-params-from-body read-opts request)
+      :put (do-parse-body read-opts request)
 
       request)))
 
@@ -113,13 +112,15 @@
       body)))
 
 (defn wrap-transit-request [handler opts]
-  (fn [req]
-    (try
-      (handler (hap-request req opts))
-      (catch Exception e
-        ;; Handler doesn't throw because it's wrapped in wrap-exception
-        {:status 400
-         :body (error-body (str "Bad Request: " (.getMessage e)) opts)}))))
+  (let [opts (update opts :read-handlers #(-> (merge default-read-handlers %)
+                                              (transit/read-handler-map)))]
+    (fn [req]
+      (try
+        (handler (hap-request req opts))
+        (catch Exception e
+          ;; Handler doesn't throw because it's wrapped in wrap-exception
+          {:status 400
+           :body (error-body (str "Bad Request: " (.getMessage e)) opts)})))))
 
 (defn- write-transit [format write-opts o]
   (let [out (ByteArrayOutputStream.)]
@@ -178,6 +179,8 @@
 
   :up-href - an href for :up links in error messages. Up link will be skipped
              if not set
+
+  :read-handlers - a map of additional Transit read handlers
 
   :write-handlers - a map of additional Transit write handlers"
   {:arglists '([handler] [handler opts])}
