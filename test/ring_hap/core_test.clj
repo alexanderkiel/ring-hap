@@ -50,9 +50,15 @@
       (is (= 400 (:status resp)))
       (is (= "Bad Request: Parse error on: bar" (error-msg resp))))))
 
+(deftest accept-test
+  (is (= ["application/json" nil]
+         (accept {:headers {"accept" "application/json"}})))
+  (is (= ["application/json" "verbose"]
+         (accept {:headers {"accept" "application/json;verbose"}}))))
+
 (deftest wrap-transit-response-test
-  (testing "Returns 406 on missing Accept header."
-    (is (= 406 (:status ((wrap-transit-response nil nil) {})))))
+  (testing "Returns a response on missing Accept header."
+    (is (= 200 (:status ((wrap-transit-response #(assoc % :status 200) nil) {})))))
 
   (testing "Returns 406 on text/plain."
     (let [req {:headers {"accept" "text/plain"}}]

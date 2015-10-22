@@ -140,7 +140,8 @@
 
 (defn accept [request]
   (if-let [type (get-in request [:headers "accept"])]
-    (rest (re-find #"^(.*?)(?:;|$)(.+)?$" type))))
+    (rest (re-find #"^(.*?)(?:;|$)(.+)?$" type))
+    ["application/json"]))
 
 (defn wrap-transit-response [handler opts]
   (let [write-opts
