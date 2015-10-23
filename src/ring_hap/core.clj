@@ -27,7 +27,7 @@
   ([media-type extra]
    (when (string? media-type)
      (let [[type subtype] (str/split media-type #"/")]
-       (when (= "application" type)
+       (when (#{"application" "*"} type)
          (case subtype
            ("transit+json" "json" "*")
            (if (and (string? extra) (.contains ^String extra "verbose"))
@@ -138,19 +138,24 @@
   (-> (update resp :body #(when % (write-transit format write-opts %)))
       (assoc-in [:headers "Content-Type"] (content-type format))))
 
-(defn accept [request]
+(defn parse-accept-header
+  "Parses the Accept header and returns a vector of the media-range and possible
+  parameters."
+  [request]
   (if-let [type (get-in request [:headers "accept"])]
     (rest (re-find #"^(.*?)(?:;|$)(.+)?$" type))
-    ["application/json"]))
+    ["*/*"]))
 
 (defn wrap-transit-response [handler opts]
   (let [write-opts
         {:handlers (-> (merge ts/write-handlers (:write-handlers opts))
                        (transit/write-handler-map))}]
     (fn [req]
-      (if-let [format (some->> (accept req) (apply transit-format))]
+      (if-let [format (some->> (parse-accept-header req) (apply transit-format))]
         (hap-response format write-opts (handler req))
-        {:status 406}))))
+        {:status 406
+         :headers {"content-type" "text/plain"}
+         :body (str (first (parse-accept-header req)) " not acceptable")}))))
 
 (defn wrap-not-found [handler opts]
   (fn [req]

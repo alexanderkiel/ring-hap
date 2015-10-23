@@ -19,4 +19,6 @@
                    com.googlecode.json-simple/json-simple]]
                  [com.fasterxml.jackson.core/jackson-core "2.3.2"]
                  [org.clojars.akiel/transit-schema "0.2"
-                  :exclusions [org.clojure/clojurescript]]])
+                  :exclusions [org.clojure/clojurescript]]]
+
+  :profiles {:test {:dependencies [[juxt/iota "0.2.0"]]}})

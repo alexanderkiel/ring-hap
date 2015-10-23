@@ -1,6 +1,7 @@
 (ns ring-hap.core-test
   (:require [clojure.test :refer :all]
-            [ring-hap.core :refer :all]))
+            [ring-hap.core :refer :all]
+            [juxt.iota :refer [given]]))
 
 (deftest transit-format-test
   (testing "media type without extra"
@@ -52,25 +53,37 @@
 
 (deftest accept-test
   (is (= ["application/json" nil]
-         (accept {:headers {"accept" "application/json"}})))
+         (parse-accept-header {:headers {"accept" "application/json"}})))
   (is (= ["application/json" "verbose"]
-         (accept {:headers {"accept" "application/json;verbose"}}))))
+         (parse-accept-header {:headers {"accept" "application/json;verbose"}}))))
 
 (deftest wrap-transit-response-test
   (testing "Returns a response on missing Accept header."
-    (is (= 200 (:status ((wrap-transit-response #(assoc % :status 200) nil) {})))))
+    (let [req {}]
+      (given ((wrap-transit-response #(assoc % :status 200) nil) req)
+        :status := 200)))
 
   (testing "Returns 406 on text/plain."
     (let [req {:headers {"accept" "text/plain"}}]
-      (is (= 406 (:status ((wrap-transit-response nil nil) req))))))
+      (given ((wrap-transit-response nil nil) req)
+        :status := 406
+        :headers :> {"content-type" "text/plain"}
+        :body := "text/plain not acceptable")))
 
   (testing "Returns a response on application/json."
     (let [req {:headers {"accept" "application/json"}}]
-      (is (= 200 (:status ((wrap-transit-response #(assoc % :status 200) nil) req))))))
+      (given ((wrap-transit-response #(assoc % :status 200) nil) req)
+        :status := 200)))
 
   (testing "Returns a response on application/*."
     (let [req {:headers {"accept" "application/*"}}]
-      (is (= 200 (:status ((wrap-transit-response #(assoc % :status 200) nil) req)))))))
+      (given ((wrap-transit-response #(assoc % :status 200) nil) req)
+        :status := 200)))
+
+  (testing "Returns a response on */*."
+    (let [req {:headers {"accept" "*/*"}}]
+      (given ((wrap-transit-response #(assoc % :status 200) nil) req)
+        :status := 200))))
 
 (deftest content-type-test
   (are [format type] (= type (content-type format))
