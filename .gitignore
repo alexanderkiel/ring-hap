@@ -1,7 +1,6 @@
 /target
 /classes
 /checkouts
-/projectFilesBackup
 pom.xml
 pom.xml.asc
 /.lein-*

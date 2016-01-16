@@ -13,12 +13,8 @@
                                                       crypto-equality
                                                       crypto-random
                                                       org.clojure/tools.reader]]
-                 [com.cognitect/transit-clj "0.8.283"
-                  :exclusions
-                  [com.fasterxml.jackson.datatype/jackson-datatype-json-org
-                   com.googlecode.json-simple/json-simple]]
-                 [com.fasterxml.jackson.core/jackson-core "2.3.2"]
-                 [org.clojars.akiel/transit-schema "0.2"
-                  :exclusions [org.clojure/clojurescript]]]
+                 [org.clojars.akiel/transit-schema "0.4-SNAPSHOT"
+                  :exclusions [org.clojure/clojurescript
+                               com.cognitect/transit-cljs]]]
 
   :profiles {:test {:dependencies [[juxt/iota "0.2.0"]]}})
