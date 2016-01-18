@@ -13,7 +13,7 @@
                                                       crypto-equality
                                                       crypto-random
                                                       org.clojure/tools.reader]]
-                 [org.clojars.akiel/transit-schema "0.4-SNAPSHOT"
+                 [org.clojars.akiel/transit-schema "0.4"
                   :exclusions [org.clojure/clojurescript
                                com.cognitect/transit-cljs]]]
 
