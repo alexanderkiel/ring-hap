@@ -177,13 +177,19 @@
 (defn wrap-hap
   "Middleware to handle all aspects of the Hypermedia Application Protocol.
 
+  * wraps nil responses and returns a 404 with an error body containing the
+    message \"Not Found.\"
+
+  * wraps exceptions and returns a 500 with an error body containing the
+    execption message as error message
+
   Accepts the following opts:
 
   :encoding - encoding to use for url-decoding. If not specified, uses
               the request character encoding, or \"UTF-8\" if no request
               character encoding is set
 
-  :up-href - an href for :up links in error messages. Up link will be skipped
+  :up-href - an href for :up links in error bodies. Up link will be skipped
              if not set
 
   :read-handlers - a map of additional Transit read handlers
